@@ -44,33 +44,22 @@ RUN /mvn/mvnw help:evaluate -Dexpression=project.version -q -DforceStdout > /mvn
 FROM tomcat:10.1.52-jdk21
 LABEL maintainer="https://github.com/oracle/opengrok"
 LABEL org.opencontainers.image.source="https://github.com/oracle/opengrok"
-LABEL org.opencontainers.image.description="OpenGrok code search"
+LABEL org.opencontainers.image.description="OpenGrok code search [fork]"
 
-# Add Perforce apt source.
-# hadolint ignore=DL3008,DL3009
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y gnupg2
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-# hadolint ignore=DL3059
-RUN curl -sS https://package.perforce.com/perforce.pubkey | gpg --dearmor > /etc/apt/trusted.gpg.d/perforce.gpg
-# hadolint ignore=DL3059
-RUN echo 'deb https://package.perforce.com/apt/ubuntu jammy release' > /etc/apt/sources.list.d/perforce.list
 
-# install dependencies and Python tools
-# hadolint ignore=DL3008,DL3009
 RUN apt-get update && \
+    apt-get install --no-install-recommends -y gnupg2 && \
+    curl -sS https://package.perforce.com/perforce.pubkey | gpg --dearmor > /etc/apt/trusted.gpg.d/perforce.gpg && \
+    echo 'deb https://package.perforce.com/apt/ubuntu jammy release' > /etc/apt/sources.list.d/perforce.list && \
+    apt-get update && \
     apt-get install --no-install-recommends -y git subversion mercurial cvs cssc bzr rcs rcs-blame \
     unzip python3 python3-pip \
-    python3-venv python3-setuptools openssh-client libyaml-dev gosu
-
-# hadolint ignore=DL3008,DL3059
-RUN architecture=$(uname -m) && if [[ "$architecture" == "aarch64" ]]; then \
+    python3-venv python3-setuptools openssh-client libyaml-dev gosu && \
+    architecture=$(uname -m) && if [[ "$architecture" == "aarch64" ]]; then \
         echo "aarch64: do not install helix-p4d."; else \
-        apt-get install --no-install-recommends -y helix-p4d || echo "Failed to install Perforce"; fi
-
-# compile and install universal-ctags
-# hadolint ignore=DL3003,DL3008
-RUN apt-get install --no-install-recommends -y pkg-config automake build-essential libxml2-dev && \
+        apt-get install --no-install-recommends -y helix-p4d || echo "Failed to install Perforce"; fi && \
+    apt-get install --no-install-recommends -y pkg-config automake build-essential libxml2-dev && \
     git clone https://github.com/universal-ctags/ctags /root/ctags && \
     cd /root/ctags && ./autogen.sh && ./configure && make && make install && \
     apt-get remove -y automake build-essential && \
@@ -80,9 +69,7 @@ RUN apt-get install --no-install-recommends -y pkg-config automake build-essenti
     rm -rf /var/lib/apt/lists/*
 
 # prepare OpenGrok binaries and directories
-# hadolint ignore=DL3010
 COPY --from=build opengrok.tar.gz /opengrok.tar.gz
-# hadolint ignore=DL3013
 RUN mkdir -p /opengrok /opengrok/etc /opengrok/data /opengrok/src && \
     tar -zxvf /opengrok.tar.gz -C /opengrok --strip-components 1 && \
     rm -f /opengrok.tar.gz && \
@@ -91,13 +78,10 @@ ENV PATH=/venv/bin:$PATH
 RUN /venv/bin/python3 -m pip install --no-cache-dir /opengrok/tools/opengrok-tools.tar.gz && \
      /venv/bin/python3 -m pip install --no-cache-dir Flask Flask-HTTPAuth waitress # for /reindex REST endpoint handled by start.py
 
-COPY --from=build /mvn/VERSION /opengrok/VERSION
-
 # Create the user/group the main program will run as.
 # The names have to match those used by entrypoint.sh.
 RUN groupadd -g 1111 -r appgroup && useradd -r -g appgroup -u 1111 appuser
 
-# environment variables
 ENV SRC_ROOT /opengrok/src
 ENV DATA_ROOT /opengrok/data
 ENV URL_ROOT /
@@ -112,15 +96,10 @@ ENV JAVA_OPTS="--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED --add-export
 --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED \
 --add-opens=java.base/java.util=ALL-UNNAMED"
 
-# disable all file logging
 COPY docker/logging.properties /usr/local/tomcat/conf/logging.properties
-RUN sed -i -e 's/Valve/Disabled/' /usr/local/tomcat/conf/server.xml
-
-# add our scripts and configuration
 COPY docker /scripts
-RUN chmod -R +x /scripts
-
-# run
+RUN sed -i -e 's/Valve/Disabled/' /usr/local/tomcat/conf/server.xml && \
+    chmod -R +x /scripts
 WORKDIR $CATALINA_HOME
 EXPOSE 8080
 CMD ["/scripts/entrypoint.sh", "/scripts/start.py"]
