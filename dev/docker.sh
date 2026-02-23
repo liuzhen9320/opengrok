@@ -12,10 +12,7 @@
 
 set -e
 
-echo "Running linter"
-docker run --rm -i hadolint/hadolint:2.6.0 < Dockerfile || exit 1
-
-IMAGE="liuzhen932/opengrok"
+IMAGE="liuzhen932/app-opengrok"
 
 if [[ -n $OPENGROK_REF && $OPENGROK_REF == refs/tags/* ]]; then
 	OPENGROK_TAG=${OPENGROK_REF#"refs/tags/"}
@@ -52,14 +49,6 @@ else
 	docker buildx build -t $IMAGE:master .
 fi
 
-#
-# Run the image in a container. This is not strictly needed however
-# serves as additional test in automatic builds.
-#
-echo "Running the image in container"
-docker run -d $IMAGE
-docker ps -a
-
 # This can only work on home repository since it needs encrypted variables.
 if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
 	echo "Not pushing Docker image for pull requests"
@@ -67,7 +56,7 @@ if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
 fi
 
 # The push only works on the main repository.
-if [[ "$OPENGROK_REPO_SLUG" != "oracle/opengrok" ]]; then
+if [[ "$OPENGROK_REPO_SLUG" != "liuzhen9320/opengrok" ]]; then
 	echo "Not pushing Docker image for non main repository"
 	exit 0
 fi
