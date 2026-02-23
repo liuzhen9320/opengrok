@@ -60,9 +60,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    gnupg2 curl git openssh-client libyaml-dev gosu ca-certificates \
+    curl git openssh-client libyaml-dev libxml2-dev ca-certificates \
     unzip python3 python3-pip python3-venv python3-setuptools && \
-    apt-get purge -y --auto-remove curl gnupg2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
