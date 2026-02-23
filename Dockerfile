@@ -40,8 +40,7 @@ RUN cp $(ls -t distribution/target/*.tar.gz | head -1) /opengrok.tar.gz
 FROM ubuntu:jammy AS build-ctags
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    git automake build-essential pkg-config libxml2-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    git automake build-essential pkg-config libxml2-dev ca-certificates
 
 RUN git clone --depth 1 https://github.com/universal-ctags/ctags.git /root/ctags && \
     cd /root/ctags && ./autogen.sh && ./configure && make -j$(nproc) && make install
@@ -61,7 +60,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    gnupg2 curl git openssh-client libyaml-dev gosu \
+    gnupg2 curl git openssh-client libyaml-dev gosu ca-certificates \
     unzip python3 python3-pip python3-venv python3-setuptools && \
     apt-get purge -y --auto-remove curl gnupg2 && \
     apt-get clean && \
