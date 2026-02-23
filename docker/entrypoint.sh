@@ -44,21 +44,16 @@ if [[ ! -d $SRC_ROOT ]]; then
 	exit 1
 fi
 
-# The user/group the start program will run as.
-# This has to match the user and group name in the Dockerfile.
 OWNER_USER=appuser
 OWNER_GROUP=appgroup
 
-#
-# The Tomcat webapps directory needs to be writable so that the
-# start program can deploy the webapp.
-#
-chown -R $OWNER_USER:$OWNER_GROUP "/usr/local/tomcat/webapps"
+if [ "$(id -u)" = "0" ]; then
+    chown -R $OWNER_USER:$OWNER_GROUP "/usr/local/tomcat/webapps"
+    chown -R $OWNER_USER:$OWNER_GROUP "/opengrok/etc"
+	fix_ownership "$SRC_ROOT"
+	fix_ownership "$DATA_ROOT"
+else
+    echo "Running as non-root user, skipping chown (permissions should be set at build time)."
+fi
 
-# The start program needs to be able to create configuration files in the /opengrok/etc/ directory.
-chown -R $OWNER_USER:$OWNER_GROUP "/opengrok/etc"
-
-fix_ownership "$SRC_ROOT"
-fix_ownership "$DATA_ROOT"
-
-exec gosu $OWNER_USER "$@"
+exec "$@"
