@@ -30,8 +30,6 @@ function fix_ownership() {
       xargs -r chown -R $OWNER_USER:$OWNER_GROUP
 }
 
-command -v gosu >/dev/null 2>&1 || { echo "gosu missing"; exit 1; }
-
 DATA_ROOT="/opengrok/data"
 if [[ ! -d $DATA_ROOT ]]; then
   echo "Expected mounted directory at '$DATA_ROOT' but found none; create volume or directory"
