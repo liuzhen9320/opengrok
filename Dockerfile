@@ -105,7 +105,7 @@ COPY docker/ /scripts
 
 RUN sed -i -e 's/Valve/Disabled/' /usr/local/tomcat/conf/server.xml && \
     chmod +x /scripts/entrypoint.sh /scripts/start.py && \
-    chown -R appuser:appgroup /opengrok /scripts
+    chown -R appuser:appgroup /opengrok /scripts /usr/local/tomcat/webapps /usr/local/tomcat/logs
 
 WORKDIR $CATALINA_HOME
 EXPOSE 8080
